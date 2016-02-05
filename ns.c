@@ -75,6 +75,12 @@ int contains_token(char *tokens[], int size, char* token){
     return -1;
 }
 
+/* handles exiting the shell */
+void handle_sigint(){
+   printf("Attempting to exit...\n");
+   exit(EXIT_SUCCESS);
+}
+
 /* creates a subset of tokens from a list of tokens */
 void extract_tokens(char *tokens[], char *extracted_tokens[], int first, int last){
     int j = 0;
@@ -97,6 +103,7 @@ int main(){
             history[HISTORY_SIZE][MAX_INPUT_SIZE] = {'\0'},
             *tokens[CMD_MAX];
 
+    signal(SIGINT, handle_sigint);
     //shell loop
     while(!exit_flag){
 
@@ -106,7 +113,7 @@ int main(){
         format_input(input);
 
         //built-in exit function
-        if(!strcmp(input, "exit")) exit_flag = true;  
+        if(!strcmp(input, "exit")) exit_flag = true;
 
         //built-in history function
         else if(!strcmp(input, "history")){
@@ -197,9 +204,6 @@ int main(){
                     else if(pid2 > 0){ 
                         //parent process (ie child of the parent shell)
                        
-                        //wait for the input (child to finish)
-                        wait(&status);
-
                         //redirect input to from the pipe
                         close(fds[1]);
                         dup2(fds[0], STDIN_FILENO);
