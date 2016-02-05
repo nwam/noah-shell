@@ -77,8 +77,12 @@ int contains_token(char *tokens[], int size, char* token){
 
 /* creates a subset of tokens from a list of tokens */
 void extract_tokens(char *tokens[], char *extracted_tokens[], int first, int last){
+    int j = 0;
     for(int i=first; i<last; i++){
-            strcpy(extracted_tokens[i-first], tokens[first]);
+            if(tokens[i]){
+                extracted_tokens[j] = tokens[i];
+                j++;
+            }
     }
 }
 
@@ -159,7 +163,7 @@ int main(){
                     tokens[token_index  ] = '\0';
                     tokens[token_index+1] = '\0';
                 }
-/*
+
                 //handle pipe
                 token_index = contains_token(tokens, num_tokens, "|");
                 if(token_index >= 0 && token_index+1 < num_tokens){
@@ -173,7 +177,8 @@ int main(){
 
                     //create another process
                     pid_t pid2 = fork();
-                    if(pid2 == 0){       //child process
+                    if(pid2 == 0){      
+                        //child process
 
                         //redirect output to the pipe
                         close(fds[0]);
@@ -189,7 +194,8 @@ int main(){
                         exit(EXIT_FAILURE);
                     }
 
-                    else if(pid2 > 0){  //parent process (ie child of the parent shell)
+                    else if(pid2 > 0){ 
+                        //parent process (ie child of the parent shell)
                        
                         //wait for the input (child to finish)
                         wait(&status);
@@ -208,7 +214,7 @@ int main(){
                         exit(EXIT_FAILURE);
                     }
                 }
-*/ 
+ 
                 //execute command
                 execvp(tokens[0], tokens);
                 printf("%s: invalid command\n", tokens[0]);
