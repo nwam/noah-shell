@@ -1,6 +1,11 @@
-/* file: ns.c -- Noah Shell
- * Author: Noah Murad
- * Date: February 1, 2016
+/* file: ns.c -- noah'shell
+ * Author: Noah Murad -- CS3305B, Department of Computer Science, Western University, 
+ *      London, Ontario, Canada, Earth, Solar System, Milky Way, Local Group, Laniakea, Universe
+ * Date: February 5, 2016
+ *
+ * Description: noah'shell (ns, Noah's Shell) is a shell created by Noah Murad which
+ *      along with supporting system functions, supports the built-in functions
+ *      history and exit. ns also supports IO redirection and multi-piping. 
 */
 
 #include <stdlib.h>
@@ -101,6 +106,9 @@ int count_pipes(char *tokens[], int size){
     return count;
 }
 
+/* gets and stores (inside pipe_indices) the indices of pipe tokens found in tokens
+ * pipe_indices[0] is reseved for the value -1, and 
+ * pipe_indices[num_pipes+1] is reserved for the number of tokens in tokens */
 void get_pipe_indices(char *tokens[], int size, int pipe_indices[]){
     pipe_indices[0] = -1;
     int j = 1;
@@ -113,6 +121,9 @@ void get_pipe_indices(char *tokens[], int size, int pipe_indices[]){
     pipe_indices[j] = CMD_MAX;
 }
 
+/* forks a new process and executes the command command with the new (child) process
+ * redirects the input  to in
+ * redirects the output to out */
 void execute_piped_process(int in, int out, char *command[]){
     pid_t pid = fork();
 
@@ -135,32 +146,6 @@ void execute_piped_process(int in, int out, char *command[]){
         execvp(command[0], command);
     }
 }
-
-
-/* breaks up a string with pipes into individual segments
- * where segments are separated by pipes */
-/*
-void extract_pipe_segments(char *tokens[], int size,  char *extracted_segments[][CMD_MAX]){
-    int seg_index = 0; //the pipe index
-    int tok_index = 0; //the token index within the current pipe
-    for(int i=0; i<size; i++){
-        if(tokens[i]){
-            if(strcmp(tokens[i], "|")==0){
-                seg_index++;
-                tok_index = 0;
-            }else{
-                extracted_segments[seg_index][tok_index] = tokens[i];
-            }
-        }
-    }
-}
-
-void init_pipe_segments(char *a[][CMD_MAX], int size){
-    for(int i=0; i<size; i++)
-        for(int j=0; j<CMD_MAX; j++)
-            a[i][j] = '\0';
-}
-*/
 
 /* main */
 int main(){
@@ -270,54 +255,6 @@ int main(){
                     execvp(commands[num_pipes][0], commands[num_pipes]);
                 }
 
-
-/*              /////single pipe code/////
-                if(token_index >= 0 && token_index+1 < num_tokens){
-                   
-                    //open a pipe
-                    int fds[2];
-                    if(pipe(fds)<0){
-                        perror("Pipe fail");
-                        exit(EXIT_FAILURE);
-                    }
-
-                    //create another process
-                    pid_t pid2 = fork();
-                    if(pid2 == 0){      
-                        //child process
-
-                        //redirect output to the pipe
-                        close(fds[0]);
-                        dup2(fds[1], STDOUT_FILENO);
-
-                        //extract the input command (command to the left of the pipe)
-                        char *left_pipe[CMD_MAX];
-                        extract_tokens(tokens, left_pipe, 0, token_index);
-
-                        //execute the command
-                        execvp(left_pipe[0], left_pipe);
-                        perror("Exec error");
-                        exit(EXIT_FAILURE);
-                    }
-
-                    else if(pid2 > 0){ 
-                        //parent process (ie child of the parent shell)
-                       
-                        //redirect input to from the pipe
-                        close(fds[1]);
-                        dup2(fds[0], STDIN_FILENO);
-
-                        //extract the output command (command to the right of the pipe)
-                        char* right_pipe[CMD_MAX];
-                        extract_tokens(tokens, right_pipe, token_index+1, CMD_MAX);
-
-                        //execute the command
-                        execvp(right_pipe[0], right_pipe);
-                        perror("Exec error");
-                        exit(EXIT_FAILURE);
-                    }
-                }
- */
                 //execute command
                 execvp(tokens[0], tokens);
                 printf("%s: invalid command\n", tokens[0]);
@@ -331,8 +268,6 @@ int main(){
             oldest_history--;
             if(oldest_history < 0) oldest_history = HISTORY_SIZE - 1;
         }
-
-        //clean up
 
     }
 
