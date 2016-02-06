@@ -92,6 +92,76 @@ void extract_tokens(char *tokens[], char *extracted_tokens[], int first, int las
     }
 }
 
+/*counts the number of pipe tokens from a list of tokens */
+int count_pipes(char *tokens[], int size){
+    int count = 0;
+    for(int i=0; i<size; i++){
+        if(tokens[i] && strcmp(tokens[i],"|")==0) count++;
+    }
+    return count;
+}
+
+void get_pipe_indices(char *tokens[], int size, int pipe_indices[]){
+    pipe_indices[0] = -1;
+    int j = 1;
+    for(int i=0; i<size; i++){
+        if(tokens[i] && strcmp(tokens[i], "|")==0){
+            pipe_indices[j] = i;
+            j++;
+        }
+    }
+    pipe_indices[j] = CMD_MAX;
+}
+
+void execute_piped_process(int in, int out, char *command[]){
+    pid_t pid = fork();
+
+    if(pid == 0){
+        //child process
+
+        //connect input to the specified input
+        if(in != STDIN_FILENO){
+            dup2(in, STDIN_FILENO);
+            close(in);
+        }
+
+        //connect output to the specified output
+        if(out != STDOUT_FILENO){
+            dup2(out, STDOUT_FILENO);
+            close(out);
+        }
+
+        //execute the command
+        execvp(command[0], command);
+    }
+}
+
+
+/* breaks up a string with pipes into individual segments
+ * where segments are separated by pipes */
+/*
+void extract_pipe_segments(char *tokens[], int size,  char *extracted_segments[][CMD_MAX]){
+    int seg_index = 0; //the pipe index
+    int tok_index = 0; //the token index within the current pipe
+    for(int i=0; i<size; i++){
+        if(tokens[i]){
+            if(strcmp(tokens[i], "|")==0){
+                seg_index++;
+                tok_index = 0;
+            }else{
+                extracted_segments[seg_index][tok_index] = tokens[i];
+            }
+        }
+    }
+}
+
+void init_pipe_segments(char *a[][CMD_MAX], int size){
+    for(int i=0; i<size; i++)
+        for(int j=0; j<CMD_MAX; j++)
+            a[i][j] = '\0';
+}
+*/
+
 /* main */
 int main(){
 
@@ -172,7 +242,36 @@ int main(){
                 }
 
                 //handle pipe
-                token_index = contains_token(tokens, num_tokens, "|");
+                int num_pipes = count_pipes(tokens, num_tokens);
+                if(num_pipes > 0){
+                    
+                    //get the indices of the pipes to extract the commands
+                    int pipe_indices[CMD_MAX];
+                    get_pipe_indices(tokens, num_tokens, pipe_indices);
+                    
+                    //extract all the commands
+                    char *commands[CMD_MAX][CMD_MAX];
+                    for(int i=0; i<=num_pipes; i++){
+                        extract_tokens(tokens, commands[i], pipe_indices[i]+1, pipe_indices[i+1]);
+                    }
+                    
+                    //connect and run all the pipe commands
+                    int fds[2],
+                        in = STDIN_FILENO;
+                    for(int i=0; i<num_pipes; i++){
+                        pipe(fds);
+                        execute_piped_process(in, fds[1], commands[i]);
+                        close(fds[1]);
+                        in = fds[0];
+                    }
+
+                    //execute the last command
+                    if(in != STDIN_FILENO) dup2(in, STDIN_FILENO);
+                    execvp(commands[num_pipes][0], commands[num_pipes]);
+                }
+
+
+/*              /////single pipe code/////
                 if(token_index >= 0 && token_index+1 < num_tokens){
                    
                     //open a pipe
@@ -218,7 +317,7 @@ int main(){
                         exit(EXIT_FAILURE);
                     }
                 }
- 
+ */
                 //execute command
                 execvp(tokens[0], tokens);
                 printf("%s: invalid command\n", tokens[0]);
@@ -227,7 +326,6 @@ int main(){
         }
 
         //update history
-        printf("%d\n", status);
         if(strcmp(input, "") && status==0){
             strcpy( history[oldest_history], input );
             oldest_history--;
